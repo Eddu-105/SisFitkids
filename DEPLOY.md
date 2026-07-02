@@ -102,11 +102,19 @@ Output directory:
 dist
 ```
 
-Para Vercel, usa `frontend` como root directory. Para Netlify, también puedes usar `frontend`; el archivo `public/_redirects` ya permite refrescar rutas internas.
+Para Vercel, puedes importar el repositorio completo desde la raiz. El archivo `vercel.json` ya indica:
+
+```text
+Install Command: cd frontend && npm install
+Build Command: cd frontend && npm run build
+Output Directory: frontend/dist
+```
+
+Tambien puedes usar `frontend` como Root Directory. Si haces eso, la salida debe ser `dist`.
 
 Si ves `Bad Request (400)` en Vercel, revisa:
 
-1. Que el proyecto de Vercel use `frontend` como Root Directory.
+1. Que el proyecto de Vercel use la configuracion del repo, o que si usas Root Directory `frontend`, el Output Directory sea `dist`.
 2. Que `VITE_API_BASE_URL` apunte al backend desplegado, no al frontend.
 3. Que el backend tenga `ALLOWED_HOSTS` incluyendo su dominio.
 4. Que `CSRF_TRUSTED_ORIGINS` y `CORS_ALLOWED_ORIGINS` incluyan el dominio del frontend.
