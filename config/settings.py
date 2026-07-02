@@ -15,9 +15,13 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-local-dev-only-change
 
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = [
+allowed_hosts_env = os.environ.get(
+    'ALLOWED_HOSTS',
+    'localhost,127.0.0.1,testserver,.vercel.app,.onrender.com,.railway.app',
+)
+ALLOWED_HOSTS = ['*'] if allowed_hosts_env.strip() == '*' else [
     host.strip()
-    for host in os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,testserver').split(',')
+    for host in allowed_hosts_env.split(',')
     if host.strip()
 ]
 
@@ -142,13 +146,21 @@ CORS_ALLOWED_ORIGINS = [
     ).split(',')
     if origin.strip()
 ]
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    regex.strip()
+    for regex in os.environ.get(
+        'CORS_ALLOWED_ORIGIN_REGEXES',
+        r'https://.*\.vercel\.app,https://.*\.onrender\.com,https://.*\.railway\.app',
+    ).split(',')
+    if regex.strip()
+]
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
     for origin in os.environ.get(
         'CSRF_TRUSTED_ORIGINS',
-        'http://localhost:5173,http://127.0.0.1:5173',
+        'http://localhost:5173,http://127.0.0.1:5173,https://*.vercel.app,https://*.onrender.com,https://*.railway.app',
     ).split(',')
     if origin.strip()
 ]

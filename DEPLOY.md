@@ -20,10 +20,11 @@ Configura estas variables en Render, Railway o tu proveedor:
 ```text
 DEBUG=False
 SECRET_KEY=una-clave-larga-y-secreta
-ALLOWED_HOSTS=tu-backend.onrender.com
+ALLOWED_HOSTS=tu-backend.onrender.com,.vercel.app,.onrender.com,.railway.app
 DATABASE_URL=postgresql://...
 DB_SSL_REQUIRE=True
 CORS_ALLOWED_ORIGINS=https://tu-frontend.vercel.app
+CORS_ALLOWED_ORIGIN_REGEXES=https://.*\.vercel\.app,https://.*\.onrender\.com,https://.*\.railway\.app
 CSRF_TRUSTED_ORIGINS=https://tu-frontend.vercel.app
 SESSION_COOKIE_SAMESITE=None
 CSRF_COOKIE_SAMESITE=None
@@ -102,3 +103,10 @@ dist
 ```
 
 Para Vercel, usa `frontend` como root directory. Para Netlify, también puedes usar `frontend`; el archivo `public/_redirects` ya permite refrescar rutas internas.
+
+Si ves `Bad Request (400)` en Vercel, revisa:
+
+1. Que el proyecto de Vercel use `frontend` como Root Directory.
+2. Que `VITE_API_BASE_URL` apunte al backend desplegado, no al frontend.
+3. Que el backend tenga `ALLOWED_HOSTS` incluyendo su dominio.
+4. Que `CSRF_TRUSTED_ORIGINS` y `CORS_ALLOWED_ORIGINS` incluyan el dominio del frontend.
