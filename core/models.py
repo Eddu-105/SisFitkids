@@ -47,10 +47,12 @@ class ClassGroup(models.Model):
 
     name = models.CharField('nombre', max_length=80)
     day_of_week = models.PositiveSmallIntegerField('dia', choices=Day.choices)
+    days_of_week = models.JSONField('dias', default=list, blank=True)
     start_time = models.TimeField('hora de inicio')
     end_time = models.TimeField('hora de fin')
     capacity = models.PositiveSmallIntegerField('cupos', default=12)
     age_range = models.CharField('rango de edad', max_length=40, blank=True)
+    color = models.CharField('color', max_length=20, default='#0d7467')
     is_active = models.BooleanField('activo', default=True)
 
     class Meta:

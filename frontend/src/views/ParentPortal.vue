@@ -14,6 +14,15 @@ const attendance = ref([])
 const progress = ref([])
 const announcements = ref([])
 const selectedChildId = ref('')
+const dayOptions = [
+  { value: 1, label: 'Lunes' },
+  { value: 2, label: 'Martes' },
+  { value: 3, label: 'Miercoles' },
+  { value: 4, label: 'Jueves' },
+  { value: 5, label: 'Viernes' },
+  { value: 6, label: 'Sabado' },
+  { value: 7, label: 'Domingo' },
+]
 
 const child = computed(() => children.value.find((currentChild) => String(currentChild.id) === String(selectedChildId.value)) || children.value[0] || null)
 const childPayments = computed(() => payments.value.filter((payment) => payment.student.id === child.value?.id))
@@ -21,6 +30,21 @@ const childAttendance = computed(() => attendance.value.filter((record) => recor
 const childProgress = computed(() => progress.value.filter((item) => item.student.id === child.value?.id))
 const pendingPayment = computed(() => childPayments.value.find((payment) => payment.status !== 'PAID'))
 const pendingPaymentsCount = computed(() => childPayments.value.filter((payment) => payment.status !== 'PAID').length)
+const childSchedule = computed(() => {
+  const group = child.value?.class_group
+  if (!group) {
+    return []
+  }
+  const days = group.days_of_week?.length ? group.days_of_week.map(Number) : [Number(group.day_of_week)].filter(Boolean)
+  return dayOptions.map((day) => ({
+    ...day,
+    group: days.includes(day.value) ? group : null,
+  }))
+})
+
+function groupDayText(group) {
+  return group?.day_labels?.length ? group.day_labels.join(', ') : group?.day_label
+}
 
 async function loadPortal() {
   loading.value = true
@@ -87,7 +111,7 @@ onMounted(loadPortal)
       <article class="parent-card">
         <CalendarDays :size="24" />
         <span>Horario</span>
-        <strong>{{ child.class_group ? `${child.class_group.day_label} ${child.class_group.start_time}` : 'Sin grupo' }}</strong>
+        <strong>{{ child.class_group ? `${groupDayText(child.class_group)} ${child.class_group.start_time}` : 'Sin grupo' }}</strong>
       </article>
       <article class="parent-card">
         <CreditCard :size="24" />
@@ -112,7 +136,7 @@ onMounted(loadPortal)
           <div>
             <span>Grupo</span>
             <strong>
-              {{ child.class_group ? `${child.class_group.name}, ${child.class_group.day_label} ${child.class_group.start_time} - ${child.class_group.end_time}` : 'Sin grupo asignado' }}
+              {{ child.class_group ? `${child.class_group.name}, ${groupDayText(child.class_group)} ${child.class_group.start_time} - ${child.class_group.end_time}` : 'Sin grupo asignado' }}
             </strong>
           </div>
           <div>
@@ -128,6 +152,23 @@ onMounted(loadPortal)
 
       <article class="panel">
         <div class="panel-header">
+          <h2><CalendarDays :size="19" /> Calendario</h2>
+        </div>
+        <section class="mini-week-calendar">
+          <article v-for="day in childSchedule" :key="day.value" class="mini-calendar-day">
+            <span>{{ day.label }}</span>
+            <strong v-if="day.group" :style="{ borderColor: day.group.color }">
+              {{ day.group.start_time }} - {{ day.group.end_time }}
+            </strong>
+            <small v-else>Libre</small>
+          </article>
+        </section>
+      </article>
+    </section>
+
+    <section v-if="child" class="content-grid">
+      <article class="panel">
+        <div class="panel-header">
           <h2><MessageCircle :size="19" /> Pagos</h2>
         </div>
         <ul class="notice-list">
@@ -137,9 +178,6 @@ onMounted(loadPortal)
           <li v-if="!childPayments.length">No hay pagos registrados para este alumno.</li>
         </ul>
       </article>
-    </section>
-
-    <section v-if="child" class="content-grid">
       <article class="panel wide">
         <div class="panel-header">
           <h2>Progreso</h2>

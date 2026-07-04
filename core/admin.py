@@ -39,7 +39,7 @@ class StudentAdmin(admin.ModelAdmin):
 
 @admin.register(ClassGroup)
 class ClassGroupAdmin(admin.ModelAdmin):
-    list_display = ('name', 'day_of_week', 'start_time', 'end_time', 'capacity', 'age_range', 'is_active')
+    list_display = ('name', 'day_of_week', 'start_time', 'end_time', 'capacity', 'age_range', 'color', 'is_active')
     list_filter = ('day_of_week', 'is_active')
     search_fields = ('name', 'age_range')
 

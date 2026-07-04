@@ -59,6 +59,8 @@ const dayOptions = [
   { value: 7, label: 'Domingo' },
 ]
 
+const groupColors = ['#0d7467', '#1d4ed8', '#be123c', '#7c3aed', '#b45309', '#047857', '#c2410c', '#0369a1']
+
 const parentForm = ref({
   first_name: '',
   last_name: '',
@@ -84,10 +86,12 @@ const studentForm = ref({
 const groupForm = ref({
   name: '',
   day_of_week: '',
+  days_of_week: [],
   start_time: '',
   end_time: '',
   capacity: 12,
   age_range: '',
+  color: groupColors[0],
 })
 
 const paymentForm = ref({
@@ -128,11 +132,17 @@ const filteredParents = computed(() => {
 const filteredGroups = computed(() => {
   const search = filters.value.groups.trim().toLowerCase()
   return classGroups.value.filter((group) => {
-    const matchesSearch = !search || [group.name, group.age_range, group.day_label].some((value) => (value || '').toLowerCase().includes(search))
-    const matchesDay = !filters.value.groupDay || String(group.day_of_week) === String(filters.value.groupDay)
+    const matchesSearch = !search || [group.name, group.age_range, groupDayText(group)].some((value) => (value || '').toLowerCase().includes(search))
+    const matchesDay = !filters.value.groupDay || groupDays(group).some((day) => String(day) === String(filters.value.groupDay))
     return matchesSearch && matchesDay
   })
 })
+const weeklyCalendar = computed(() => dayOptions.map((day) => ({
+  ...day,
+  groups: classGroups.value
+    .filter((group) => group.is_active && groupDays(group).includes(day.value))
+    .sort((first, second) => first.start_time.localeCompare(second.start_time)),
+})))
 const filteredPayments = computed(() => {
   const search = filters.value.payments.trim().toLowerCase()
   return payments.value.filter((payment) => {
@@ -148,6 +158,26 @@ const filteredPayments = computed(() => {
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10)
+}
+
+function groupDays(group) {
+  return group.days_of_week?.length ? group.days_of_week.map(Number) : [Number(group.day_of_week)].filter(Boolean)
+}
+
+function groupDayText(group) {
+  return group.day_labels?.length ? group.day_labels.join(', ') : group.day_label
+}
+
+function toggleGroupDay(dayValue) {
+  const currentDays = new Set(groupForm.value.days_of_week.map(Number))
+  if (currentDays.has(dayValue)) {
+    currentDays.delete(dayValue)
+  } else {
+    currentDays.add(dayValue)
+  }
+  const selectedDays = [...currentDays].sort((first, second) => first - second)
+  groupForm.value.days_of_week = selectedDays
+  groupForm.value.day_of_week = selectedDays[0] || ''
 }
 
 function switchModule(module) {
@@ -205,10 +235,12 @@ function resetGroupForm() {
   groupForm.value = {
     name: '',
     day_of_week: '',
+    days_of_week: [],
     start_time: '',
     end_time: '',
     capacity: 12,
     age_range: '',
+    color: groupColors[0],
   }
 }
 
@@ -396,6 +428,10 @@ async function createGroup() {
   error.value = ''
   success.value = ''
   const wasEditing = editing.value.type === 'groups'
+  if (!groupForm.value.days_of_week.length) {
+    error.value = 'Selecciona al menos un dia para el horario.'
+    return
+  }
   try {
     const group = await api(wasEditing ? `/api/class-groups/${editing.value.id}/` : '/api/class-groups/', {
       method: wasEditing ? 'PUT' : 'POST',
@@ -481,10 +517,12 @@ function editGroup(group) {
   groupForm.value = {
     name: group.name,
     day_of_week: group.day_of_week,
+    days_of_week: groupDays(group),
     start_time: group.start_time,
     end_time: group.end_time,
     capacity: group.capacity,
     age_range: group.age_range,
+    color: group.color || groupColors[0],
   }
 }
 
@@ -727,13 +765,13 @@ onMounted(loadData)
           <div class="table">
             <div class="table-row table-head">
               <span>Grupo</span>
-              <span>Dia</span>
+              <span>Dias</span>
               <span>Horario</span>
               <span>Acciones</span>
             </div>
             <div v-for="group in filteredGroups" :key="group.id" class="table-row">
-              <span><strong>{{ group.name }}</strong><small>{{ group.age_range || 'Sin rango definido' }}</small></span>
-              <span>{{ group.day_label }}</span>
+              <span><strong><i class="color-dot" :style="{ background: group.color }"></i>{{ group.name }}</strong><small>{{ group.age_range || 'Sin rango definido' }}</small></span>
+              <span>{{ groupDayText(group) }}</span>
               <span>{{ group.start_time }} - {{ group.end_time }} <mark class="ok">{{ group.students_count }}/{{ group.capacity }}</mark></span>
               <span class="row-actions">
                 <button class="ghost-button" type="button" @click="editGroup(group)">Editar</button>
@@ -742,6 +780,17 @@ onMounted(loadData)
             </div>
             <p v-if="!filteredGroups.length && !loading" class="empty-state">No hay horarios para los filtros actuales.</p>
           </div>
+          <section class="week-calendar">
+            <article v-for="day in weeklyCalendar" :key="day.value" class="calendar-day">
+              <h3>{{ day.label }}</h3>
+              <div v-for="group in day.groups" :key="`${day.value}-${group.id}`" class="calendar-event" :style="{ borderColor: group.color }">
+                <span class="calendar-time">{{ group.start_time }} - {{ group.end_time }}</span>
+                <strong>{{ group.name }}</strong>
+                <small>{{ group.students_count }}/{{ group.capacity }} cupos</small>
+              </div>
+              <p v-if="!day.groups.length" class="calendar-empty">Libre</p>
+            </article>
+          </section>
         </article>
 
         <article v-if="activeTab === 'payments' && activeMode === 'list'" class="panel wide">
@@ -789,7 +838,7 @@ onMounted(loadData)
               Grupo
               <select v-model="attendanceForm.class_group_id" required>
                 <option value="">Seleccionar grupo</option>
-                <option v-for="group in classGroups" :key="group.id" :value="group.id">{{ group.name }} - {{ group.day_label }}</option>
+                <option v-for="group in classGroups" :key="group.id" :value="group.id">{{ group.name }} - {{ groupDayText(group) }}</option>
               </select>
             </label>
             <label>
@@ -952,7 +1001,7 @@ onMounted(loadData)
               <select v-model="studentForm.class_group_id">
                 <option value="">Sin grupo</option>
                 <option v-for="group in classGroups" :key="group.id" :value="group.id">
-                  {{ group.name }} - {{ group.day_label }} {{ group.start_time }}
+                  {{ group.name }} - {{ groupDayText(group) }} {{ group.start_time }}
                 </option>
               </select>
             </label>
@@ -1030,13 +1079,20 @@ onMounted(loadData)
               Nombre del grupo
               <input v-model="groupForm.name" required type="text" placeholder="Kids funcional 6-9" />
             </label>
-            <label>
-              Dia
-              <select v-model="groupForm.day_of_week" required>
-                <option value="">Seleccionar dia</option>
-                <option v-for="day in dayOptions" :key="day.value" :value="day.value">{{ day.label }}</option>
-              </select>
-            </label>
+            <fieldset class="field-group">
+              <legend>Dias</legend>
+              <div class="day-picker">
+                <button
+                  v-for="day in dayOptions"
+                  :key="day.value"
+                  :class="{ active: groupForm.days_of_week.includes(day.value) }"
+                  type="button"
+                  @click="toggleGroupDay(day.value)"
+                >
+                  {{ day.label }}
+                </button>
+              </div>
+            </fieldset>
             <div class="form-grid">
               <label>
                 Inicio
@@ -1057,6 +1113,20 @@ onMounted(loadData)
                 <input v-model="groupForm.age_range" type="text" placeholder="6 a 9 anos" />
               </label>
             </div>
+            <fieldset class="field-group">
+              <legend>Color</legend>
+              <div class="color-picker">
+                <button
+                  v-for="color in groupColors"
+                  :key="color"
+                  :class="{ active: groupForm.color === color }"
+                  :style="{ background: color }"
+                  :title="color"
+                  type="button"
+                  @click="groupForm.color = color"
+                ></button>
+              </div>
+            </fieldset>
             <div class="form-actions">
               <button class="primary" type="submit">{{ isEditingCurrentTab ? 'Actualizar horario' : 'Guardar horario' }}</button>
               <button v-if="isEditingCurrentTab" class="secondary" type="button" @click="cancelEdit">Cancelar</button>

@@ -6,6 +6,7 @@ from io import StringIO
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.db.models import Count, Sum
 from django.http import HttpResponse, JsonResponse
+from django.utils.dateparse import parse_time
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
@@ -80,19 +81,69 @@ def student_to_dict(student):
     }
 
 
+def class_group_days(class_group):
+    days = class_group.days_of_week or [class_group.day_of_week]
+    return [int(day) for day in days if day]
+
+
+def day_label(day):
+    return ClassGroup.Day(int(day)).label
+
+
 def class_group_to_dict(class_group):
+    days = class_group_days(class_group)
+    day_labels = [day_label(day) for day in days]
     return {
         'id': class_group.id,
         'name': class_group.name,
         'day_of_week': class_group.day_of_week,
-        'day_label': class_group.get_day_of_week_display(),
+        'day_label': day_labels[0] if day_labels else class_group.get_day_of_week_display(),
+        'days_of_week': days,
+        'day_labels': day_labels,
         'start_time': class_group.start_time.strftime('%H:%M'),
         'end_time': class_group.end_time.strftime('%H:%M'),
         'capacity': class_group.capacity,
         'age_range': class_group.age_range,
+        'color': class_group.color,
         'is_active': class_group.is_active,
         'students_count': class_group.students.count(),
     }
+
+
+def request_group_days(data, current_group=None):
+    raw_days = data.get('days_of_week')
+    if raw_days is None:
+        raw_days = [data.get('day_of_week')] if data.get('day_of_week') else None
+    if raw_days is None and current_group:
+        raw_days = class_group_days(current_group)
+    if raw_days is None:
+        return []
+    if not isinstance(raw_days, list):
+        raw_days = [raw_days]
+    try:
+        days = sorted({int(day) for day in raw_days if str(day).strip()})
+    except (TypeError, ValueError):
+        return []
+    return [day for day in days if day in ClassGroup.Day.values]
+
+
+def request_group_time(data, field, current_group=None):
+    value = data.get(field)
+    if value in [None, ''] and current_group:
+        return getattr(current_group, field)
+    parsed = parse_time(str(value or ''))
+    return parsed
+
+
+def find_group_collision(days, start_time, end_time, exclude_id=None):
+    groups = ClassGroup.objects.filter(is_active=True)
+    if exclude_id:
+        groups = groups.exclude(id=exclude_id)
+    day_set = set(days)
+    for group in groups:
+        if day_set.intersection(class_group_days(group)) and start_time < group.end_time and end_time > group.start_time:
+            return group
+    return None
 
 
 def payment_to_dict(payment):
@@ -510,17 +561,27 @@ def class_groups_collection(request):
     if data is None:
         return json_error('El JSON enviado no es valido.')
 
-    required_fields = ['name', 'day_of_week', 'start_time', 'end_time']
-    if any(not data.get(field) for field in required_fields):
-        return json_error('Nombre, dia, inicio y fin son obligatorios.')
+    days = request_group_days(data)
+    start_time = request_group_time(data, 'start_time')
+    end_time = request_group_time(data, 'end_time')
+    if not data.get('name') or not days or not start_time or not end_time:
+        return json_error('Nombre, dias, inicio y fin son obligatorios.')
+    if start_time >= end_time:
+        return json_error('La hora de inicio debe ser menor a la hora de fin.')
+
+    collision = find_group_collision(days, start_time, end_time)
+    if collision:
+        return json_error(f'El horario se cruza con {collision.name}.')
 
     group = ClassGroup.objects.create(
         name=(data.get('name') or '').strip(),
-        day_of_week=data.get('day_of_week'),
-        start_time=data.get('start_time'),
-        end_time=data.get('end_time'),
+        day_of_week=days[0],
+        days_of_week=days,
+        start_time=start_time,
+        end_time=end_time,
         capacity=data.get('capacity') or 12,
         age_range=(data.get('age_range') or '').strip(),
+        color=data.get('color') or '#0d7467',
     )
     group.refresh_from_db()
     return JsonResponse(class_group_to_dict(group), status=201)
@@ -552,10 +613,25 @@ def class_group_detail(request, group_id):
         return json_error('El JSON enviado no es valido.')
 
     required = request.method == 'PUT'
-    if required and not all(data.get(field) for field in ['name', 'day_of_week', 'start_time', 'end_time']):
-        return json_error('Nombre, dia, inicio y fin son obligatorios.')
+    days = request_group_days(data, current_group=group)
+    start_time = request_group_time(data, 'start_time', current_group=group)
+    end_time = request_group_time(data, 'end_time', current_group=group)
+    if required and (not data.get('name') or not days or not start_time or not end_time):
+        return json_error('Nombre, dias, inicio y fin son obligatorios.')
+    if not days or not start_time or not end_time:
+        return json_error('Dias, inicio y fin son obligatorios.')
+    if start_time >= end_time:
+        return json_error('La hora de inicio debe ser menor a la hora de fin.')
 
-    for field in ['name', 'day_of_week', 'start_time', 'end_time', 'capacity', 'age_range', 'is_active']:
+    collision = find_group_collision(days, start_time, end_time, exclude_id=group.id)
+    if collision:
+        return json_error(f'El horario se cruza con {collision.name}.')
+
+    group.day_of_week = days[0]
+    group.days_of_week = days
+    group.start_time = start_time
+    group.end_time = end_time
+    for field in ['name', 'capacity', 'age_range', 'color', 'is_active']:
         if field in data:
             value = data.get(field)
             if isinstance(value, str) and field in ['name', 'age_range']:

@@ -466,6 +466,14 @@ small {
   margin-top: 2px;
 }
 
+.color-dot {
+  border-radius: 999px;
+  display: inline-block;
+  height: 10px;
+  margin-right: 8px;
+  width: 10px;
+}
+
 .table-head {
   color: #617080;
   font-size: 12px;
@@ -604,6 +612,131 @@ mark.warn {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.field-group {
+  border: 0;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.field-group legend {
+  color: #384758;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.day-picker,
+.color-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.day-picker button {
+  background: #e8edf3;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #243244;
+  cursor: pointer;
+  font-weight: 900;
+  min-height: 38px;
+  padding: 0 12px;
+}
+
+.day-picker button.active {
+  background: #0d7467;
+  color: #fff;
+}
+
+.color-picker button {
+  border: 3px solid #fff;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px #d9e2ec;
+  cursor: pointer;
+  height: 34px;
+  width: 34px;
+}
+
+.color-picker button.active {
+  box-shadow: 0 0 0 3px #1c2430;
+}
+
+.week-calendar {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(7, minmax(120px, 1fr));
+  margin-top: 18px;
+}
+
+.calendar-day,
+.mini-calendar-day {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  min-width: 0;
+  padding: 12px;
+}
+
+.calendar-day h3 {
+  color: #243244;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.calendar-event {
+  background: #fff;
+  border-left: 5px solid;
+  border-radius: 8px;
+  display: grid;
+  gap: 3px;
+  margin-top: 8px;
+  padding: 10px;
+}
+
+.calendar-time {
+  color: #617080;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.calendar-empty {
+  color: #8b98a8;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mini-week-calendar {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.mini-calendar-day {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 92px 1fr;
+}
+
+.mini-calendar-day span {
+  color: #617080;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.mini-calendar-day strong {
+  background: #fff;
+  border-left: 5px solid;
+  border-radius: 8px;
+  padding: 9px 10px;
+}
+
+.mini-calendar-day small {
+  color: #8b98a8;
+  font-weight: 800;
+}
+
 .attendance-list {
   display: grid;
   gap: 14px;
@@ -723,6 +856,7 @@ mark.warn {
   .app-shell,
   .content-grid,
   .inline-form,
+  .week-calendar,
   .parent-grid,
   .notice-list.inline {
     grid-template-columns: 1fr;
