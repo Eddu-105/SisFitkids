@@ -2,6 +2,8 @@
 import { computed, onMounted, ref } from 'vue'
 import { CalendarDays, CreditCard, MessageSquareText, Plus, RefreshCcw, Search, UsersRound } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
+import WeekScheduleCalendar from '../components/WeekScheduleCalendar.vue'
+import { dayOptions, groupColors, groupDays, groupDayText } from '../constants/schedule'
 import { api } from '../services/api'
 
 const router = useRouter()
@@ -47,18 +49,6 @@ const progressForm = ref({
   notes: '',
 })
 const announcementForm = ref({ title: '', body: '', parent_id: '', is_active: true })
-
-const dayOptions = [
-  { value: 1, label: 'Lunes' },
-  { value: 2, label: 'Martes' },
-  { value: 3, label: 'Miercoles' },
-  { value: 4, label: 'Jueves' },
-  { value: 5, label: 'Viernes' },
-  { value: 6, label: 'Sabado' },
-  { value: 7, label: 'Domingo' },
-]
-
-const groupColors = ['#0d7467', '#1d4ed8', '#be123c', '#7c3aed', '#b45309', '#047857', '#c2410c', '#0369a1']
 
 const parentForm = ref({
   first_name: '',
@@ -136,12 +126,6 @@ const filteredGroups = computed(() => {
     return matchesSearch && matchesDay
   })
 })
-const weeklyCalendar = computed(() => dayOptions.map((day) => ({
-  ...day,
-  groups: classGroups.value
-    .filter((group) => group.is_active && groupDays(group).includes(day.value))
-    .sort((first, second) => first.start_time.localeCompare(second.start_time)),
-})))
 const filteredPayments = computed(() => {
   const search = filters.value.payments.trim().toLowerCase()
   return payments.value.filter((payment) => {
@@ -157,14 +141,6 @@ const filteredPayments = computed(() => {
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10)
-}
-
-function groupDays(group) {
-  return group.days_of_week?.length ? group.days_of_week.map(Number) : [Number(group.day_of_week)].filter(Boolean)
-}
-
-function groupDayText(group) {
-  return group.day_labels?.length ? group.day_labels.join(', ') : group.day_label
 }
 
 function toggleGroupDay(dayValue) {
@@ -779,17 +755,7 @@ onMounted(loadData)
             </div>
             <p v-if="!filteredGroups.length && !loading" class="empty-state">No hay horarios para los filtros actuales.</p>
           </div>
-          <section class="week-calendar">
-            <article v-for="day in weeklyCalendar" :key="day.value" class="calendar-day">
-              <h3>{{ day.label }}</h3>
-              <div v-for="group in day.groups" :key="`${day.value}-${group.id}`" class="calendar-event" :style="{ borderColor: group.color }">
-                <span class="calendar-time">{{ group.start_time }} - {{ group.end_time }}</span>
-                <strong>{{ group.name }}</strong>
-                <small>{{ group.students_count }}/{{ group.capacity }} cupos</small>
-              </div>
-              <p v-if="!day.groups.length" class="calendar-empty">Libre</p>
-            </article>
-          </section>
+          <WeekScheduleCalendar :groups="classGroups" />
         </article>
 
         <article v-if="activeTab === 'payments' && activeMode === 'list'" class="panel wide">

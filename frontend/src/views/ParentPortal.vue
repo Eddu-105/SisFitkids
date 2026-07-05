@@ -2,6 +2,9 @@
 import { computed, onMounted, ref } from 'vue'
 import { CalendarDays, CreditCard, LineChart, MessageCircle, UserRound } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
+import ParentAccountForms from '../components/ParentAccountForms.vue'
+import ParentScheduleCalendar from '../components/ParentScheduleCalendar.vue'
+import { groupDayText } from '../constants/schedule'
 import { api } from '../services/api'
 
 const router = useRouter()
@@ -17,28 +20,6 @@ const selectedChildId = ref('')
 const savingProfile = ref(false)
 const savingPassword = ref(false)
 const success = ref('')
-const profileForm = ref({
-  first_name: '',
-  last_name: '',
-  phone: '',
-  email: '',
-  address: '',
-  emergency_phone: '',
-})
-const passwordForm = ref({
-  current_password: '',
-  new_password: '',
-  confirm_password: '',
-})
-const dayOptions = [
-  { value: 1, label: 'Lunes' },
-  { value: 2, label: 'Martes' },
-  { value: 3, label: 'Miercoles' },
-  { value: 4, label: 'Jueves' },
-  { value: 5, label: 'Viernes' },
-  { value: 6, label: 'Sabado' },
-  { value: 7, label: 'Domingo' },
-]
 
 const child = computed(() => children.value.find((currentChild) => String(currentChild.id) === String(selectedChildId.value)) || children.value[0] || null)
 const childPayments = computed(() => payments.value.filter((payment) => payment.student.id === child.value?.id))
@@ -46,40 +27,6 @@ const childAttendance = computed(() => attendance.value.filter((record) => recor
 const childProgress = computed(() => progress.value.filter((item) => item.student.id === child.value?.id))
 const pendingPayment = computed(() => childPayments.value.find((payment) => payment.status !== 'PAID'))
 const pendingPaymentsCount = computed(() => childPayments.value.filter((payment) => payment.status !== 'PAID').length)
-const childSchedule = computed(() => {
-  const group = child.value?.class_group
-  if (!group) {
-    return []
-  }
-  const days = group.days_of_week?.length ? group.days_of_week.map(Number) : [Number(group.day_of_week)].filter(Boolean)
-  return dayOptions.map((day) => ({
-    ...day,
-    group: days.includes(day.value) ? group : null,
-  }))
-})
-
-function groupDayText(group) {
-  return group?.day_labels?.length ? group.day_labels.join(', ') : group?.day_label
-}
-
-function syncProfileForm(currentParent) {
-  profileForm.value = {
-    first_name: currentParent?.first_name || '',
-    last_name: currentParent?.last_name || '',
-    phone: currentParent?.phone || '',
-    email: currentParent?.email || '',
-    address: currentParent?.address || '',
-    emergency_phone: currentParent?.emergency_phone || '',
-  }
-}
-
-function resetPasswordForm() {
-  passwordForm.value = {
-    current_password: '',
-    new_password: '',
-    confirm_password: '',
-  }
-}
 
 async function loadPortal() {
   loading.value = true
@@ -88,7 +35,6 @@ async function loadPortal() {
   try {
     const data = await api('/api/parent-portal/')
     parent.value = data.parent
-    syncProfileForm(data.parent)
     children.value = data.children
     payments.value = data.payments
     attendance.value = data.attendance
@@ -102,17 +48,16 @@ async function loadPortal() {
   }
 }
 
-async function saveProfile() {
+async function saveProfile(profileForm) {
   error.value = ''
   success.value = ''
   savingProfile.value = true
   try {
     const updatedParent = await api('/api/parent-portal/', {
       method: 'PATCH',
-      body: JSON.stringify(profileForm.value),
+      body: JSON.stringify(profileForm),
     })
     parent.value = updatedParent
-    syncProfileForm(updatedParent)
     success.value = 'Datos actualizados correctamente.'
   } catch (currentError) {
     error.value = currentError.message
@@ -121,10 +66,10 @@ async function saveProfile() {
   }
 }
 
-async function changePassword() {
+async function changePassword(passwordForm) {
   error.value = ''
   success.value = ''
-  if (passwordForm.value.new_password !== passwordForm.value.confirm_password) {
+  if (passwordForm.new_password !== passwordForm.confirm_password) {
     error.value = 'La confirmacion no coincide.'
     return
   }
@@ -134,10 +79,12 @@ async function changePassword() {
       method: 'PATCH',
       body: JSON.stringify({
         action: 'change_password',
-        ...passwordForm.value,
+        current_password: passwordForm.current_password,
+        new_password: passwordForm.new_password,
+        confirm_password: passwordForm.confirm_password,
       }),
     })
-    resetPasswordForm()
+    passwordForm.reset()
     success.value = 'Contrasena actualizada correctamente.'
   } catch (currentError) {
     error.value = currentError.message
@@ -209,73 +156,14 @@ onMounted(loadPortal)
 
     <p v-if="!child && !loading" class="empty-state">Todavia no hay alumnos asociados a tu usuario.</p>
 
-    <section v-if="parent" class="panel profile-edit-panel">
-      <div class="panel-header">
-        <h2>Mis datos</h2>
-      </div>
-      <form class="data-form" @submit.prevent="saveProfile">
-        <div class="form-grid">
-          <label>
-            Nombres
-            <input v-model="profileForm.first_name" required type="text" />
-          </label>
-          <label>
-            Apellidos
-            <input v-model="profileForm.last_name" required type="text" />
-          </label>
-        </div>
-        <div class="form-grid">
-          <label>
-            Telefono
-            <input v-model="profileForm.phone" required type="tel" />
-          </label>
-          <label>
-            Correo
-            <input v-model="profileForm.email" type="email" />
-          </label>
-        </div>
-        <label>
-          Direccion
-          <input v-model="profileForm.address" type="text" />
-        </label>
-        <label>
-          Telefono de emergencia
-          <input v-model="profileForm.emergency_phone" type="tel" />
-        </label>
-        <div class="form-actions">
-          <button class="primary" :disabled="savingProfile" type="submit">
-            {{ savingProfile ? 'Guardando...' : 'Guardar datos' }}
-          </button>
-        </div>
-      </form>
-    </section>
-
-    <section v-if="parent" class="panel profile-edit-panel">
-      <div class="panel-header">
-        <h2>Cambiar contrasena</h2>
-      </div>
-      <form class="data-form" @submit.prevent="changePassword">
-        <label>
-          Contrasena actual
-          <input v-model="passwordForm.current_password" autocomplete="current-password" required type="password" />
-        </label>
-        <div class="form-grid">
-          <label>
-            Nueva contrasena
-            <input v-model="passwordForm.new_password" autocomplete="new-password" minlength="8" required type="password" />
-          </label>
-          <label>
-            Confirmar contrasena
-            <input v-model="passwordForm.confirm_password" autocomplete="new-password" minlength="8" required type="password" />
-          </label>
-        </div>
-        <div class="form-actions">
-          <button class="primary" :disabled="savingPassword" type="submit">
-            {{ savingPassword ? 'Actualizando...' : 'Actualizar contrasena' }}
-          </button>
-        </div>
-      </form>
-    </section>
+    <ParentAccountForms
+      v-if="parent"
+      :parent="parent"
+      :saving-password="savingPassword"
+      :saving-profile="savingProfile"
+      @change-password="changePassword"
+      @save-profile="saveProfile"
+    />
 
     <section v-if="child" class="content-grid">
       <article class="panel wide">
@@ -304,15 +192,7 @@ onMounted(loadPortal)
         <div class="panel-header">
           <h2><CalendarDays :size="19" /> Calendario</h2>
         </div>
-        <section class="mini-week-calendar">
-          <article v-for="day in childSchedule" :key="day.value" class="mini-calendar-day">
-            <span>{{ day.label }}</span>
-            <strong v-if="day.group" :style="{ borderColor: day.group.color }">
-              {{ day.group.start_time }} - {{ day.group.end_time }}
-            </strong>
-            <small v-else>Libre</small>
-          </article>
-        </section>
+        <ParentScheduleCalendar :group="child.class_group" />
       </article>
     </section>
 

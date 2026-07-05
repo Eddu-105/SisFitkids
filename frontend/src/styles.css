@@ -777,6 +777,11 @@ mark.warn {
   margin-bottom: 18px;
 }
 
+.account-forms {
+  display: grid;
+  gap: 18px;
+}
+
 .child-tabs {
   display: flex;
   flex-wrap: wrap;
