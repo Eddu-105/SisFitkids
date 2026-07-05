@@ -17,6 +17,7 @@ const attendance = ref([])
 const progress = ref([])
 const announcements = ref([])
 const selectedChildId = ref('')
+const activePortalTab = ref('children')
 const savingProfile = ref(false)
 const savingPassword = ref(false)
 const success = ref('')
@@ -115,7 +116,16 @@ onMounted(loadPortal)
     <p v-if="success" class="alert success">{{ success }}</p>
     <p v-if="loading" class="empty-state">Cargando informacion...</p>
 
-    <section v-if="children.length > 1" class="child-tabs" aria-label="Hijos">
+    <section v-if="parent" class="portal-tabs" aria-label="Portal">
+      <button :class="{ active: activePortalTab === 'children' }" type="button" @click="activePortalTab = 'children'">
+        Hijos
+      </button>
+      <button :class="{ active: activePortalTab === 'profile' }" type="button" @click="activePortalTab = 'profile'">
+        Mis datos
+      </button>
+    </section>
+
+    <section v-if="activePortalTab === 'children' && children.length > 1" class="child-tabs" aria-label="Hijos">
       <button
         v-for="currentChild in children"
         :key="currentChild.id"
@@ -127,7 +137,7 @@ onMounted(loadPortal)
       </button>
     </section>
 
-    <section v-if="child" class="parent-grid">
+    <section v-if="activePortalTab === 'children' && child" class="parent-grid">
       <article class="profile-panel">
         <UserRound :size="34" />
         <div>
@@ -154,10 +164,10 @@ onMounted(loadPortal)
       </article>
     </section>
 
-    <p v-if="!child && !loading" class="empty-state">Todavia no hay alumnos asociados a tu usuario.</p>
+    <p v-if="activePortalTab === 'children' && !child && !loading" class="empty-state">Todavia no hay alumnos asociados a tu usuario.</p>
 
     <ParentAccountForms
-      v-if="parent"
+      v-if="activePortalTab === 'profile' && parent"
       :parent="parent"
       :saving-password="savingPassword"
       :saving-profile="savingProfile"
@@ -165,7 +175,7 @@ onMounted(loadPortal)
       @save-profile="saveProfile"
     />
 
-    <section v-if="child" class="content-grid">
+    <section v-if="activePortalTab === 'children' && child" class="content-grid">
       <article class="panel wide">
         <div class="panel-header">
           <h2>Resumen del alumno</h2>
@@ -196,7 +206,7 @@ onMounted(loadPortal)
       </article>
     </section>
 
-    <section v-if="child" class="content-grid">
+    <section v-if="activePortalTab === 'children' && child" class="content-grid">
       <article class="panel">
         <div class="panel-header">
           <h2><MessageCircle :size="19" /> Pagos</h2>
@@ -238,7 +248,7 @@ onMounted(loadPortal)
       </article>
     </section>
 
-    <section class="panel notices-panel">
+    <section v-if="activePortalTab === 'children'" class="panel notices-panel">
       <div class="panel-header">
         <h2><MessageCircle :size="19" /> Avisos</h2>
       </div>
