@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { CalendarDays, CreditCard, MessageSquareText, Plus, RefreshCcw, Search, UsersRound } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
+import fitKidsLogo from '../assets/fit-kids-logo.png'
 import WeekScheduleCalendar from '../components/WeekScheduleCalendar.vue'
 import { dayOptions, groupColors, groupDays, groupDayText } from '../constants/schedule'
 import { api } from '../services/api'
@@ -582,7 +583,7 @@ onMounted(loadData)
   <main class="app-shell">
     <aside class="sidebar">
       <div class="brand">
-        <span class="brand-mark">SF</span>
+        <img class="brand-logo" :src="fitKidsLogo" alt="Fit Kids" />
         <div>
           <strong>SIS Fit Kids</strong>
           <small>Profesor</small>

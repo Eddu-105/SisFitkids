@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { CalendarDays, CreditCard, LineChart, MessageCircle, UserRound } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
+import fitKidsLogo from '../assets/fit-kids-logo.png'
 import ParentAccountForms from '../components/ParentAccountForms.vue'
 import ParentScheduleCalendar from '../components/ParentScheduleCalendar.vue'
 import { groupDayText } from '../constants/schedule'
@@ -105,9 +106,12 @@ onMounted(loadPortal)
 <template>
   <main class="parent-shell">
     <header class="parent-header">
-      <div>
-        <p class="eyebrow">Portal de padres</p>
-        <h1>Hola, {{ parent?.full_name || 'familia' }}</h1>
+      <div class="parent-brand">
+        <img :src="fitKidsLogo" alt="Fit Kids" />
+        <div>
+          <p class="eyebrow">Portal de padres</p>
+          <h1>Hola, {{ parent?.full_name || 'familia' }}</h1>
+        </div>
       </div>
       <button class="secondary link-button" type="button" @click="logout">Salir</button>
     </header>

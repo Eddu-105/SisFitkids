@@ -150,6 +150,14 @@ small {
   max-width: 360px;
 }
 
+.login-brand img {
+  display: block;
+  height: 118px;
+  margin: 0 0 18px;
+  object-fit: contain;
+  width: 118px;
+}
+
 .login-form {
   display: grid;
   gap: 18px;
@@ -256,16 +264,13 @@ small {
   margin-bottom: 30px;
 }
 
-.brand-mark {
-  align-items: center;
-  background: #f2b84b;
+.brand-logo {
+  background: #fff;
   border-radius: 8px;
-  color: #17212f;
-  display: inline-flex;
-  font-weight: 900;
-  height: 42px;
-  justify-content: center;
-  width: 42px;
+  height: 52px;
+  object-fit: contain;
+  padding: 4px;
+  width: 52px;
 }
 
 .brand small {
@@ -307,6 +312,23 @@ small {
   display: flex;
   gap: 16px;
   justify-content: space-between;
+}
+
+.parent-brand {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  min-width: 0;
+}
+
+.parent-brand img {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  height: 58px;
+  object-fit: contain;
+  padding: 4px;
+  width: 58px;
 }
 
 .metrics-grid {

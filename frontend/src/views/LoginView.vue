@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { LockKeyhole, UserRound } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
+import fitKidsLogo from '../assets/fit-kids-logo.png'
 import { api } from '../services/api'
 
 const router = useRouter()
@@ -30,7 +31,8 @@ async function login() {
 <template>
   <main class="login-screen">
     <section class="login-panel">
-      <div>
+      <div class="login-brand">
+        <img :src="fitKidsLogo" alt="Fit Kids" />
         <p class="eyebrow">Sistema administrativo</p>
         <h1>SIS Fit Kids</h1>
         <p class="muted">Ingresa con tus credenciales para revisar la informacion de la academia.</p>
