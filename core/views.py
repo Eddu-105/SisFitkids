@@ -296,7 +296,8 @@ def me_view(request):
     return JsonResponse({'user': user_to_dict(request.user)})
 
 
-@require_http_methods(['GET'])
+@csrf_exempt
+@require_http_methods(['GET', 'PUT', 'PATCH'])
 def parent_portal(request):
     auth_error = require_authenticated(request)
     if auth_error:
@@ -308,6 +309,33 @@ def parent_portal(request):
         parent = request.user.parent_profile
     except ParentProfile.DoesNotExist:
         return json_error('Tu usuario no tiene perfil de padre asociado.', status=404)
+
+    if request.method in ['PUT', 'PATCH']:
+        data = request_data(request)
+        if data is None:
+            return json_error('El JSON enviado no es valido.')
+
+        required = request.method == 'PUT'
+        first_name = (data.get('first_name') or '').strip()
+        last_name = (data.get('last_name') or '').strip()
+        phone = (data.get('phone') or '').strip()
+        if required and (not first_name or not last_name or not phone):
+            return json_error('Nombres, apellidos y telefono son obligatorios.')
+
+        user = parent.user
+        if first_name or required:
+            user.first_name = first_name
+        if last_name or required:
+            user.last_name = last_name
+        if 'email' in data:
+            user.email = (data.get('email') or '').strip()
+        user.save()
+
+        for field in ['phone', 'address', 'emergency_phone']:
+            if field in data:
+                setattr(parent, field, (data.get(field) or '').strip())
+        parent.save()
+        return JsonResponse(parent_to_dict(parent))
 
     children = Student.objects.filter(parent=parent).select_related('parent__user', 'class_group')
     payments = Payment.objects.filter(student__parent=parent).select_related(
@@ -361,10 +389,10 @@ def parents_collection(request):
     dni = (data.get('dni') or '').strip()
     email = (data.get('email') or '').strip()
 
-    if not first_name or not last_name or not phone:
-        return json_error('Nombres, apellidos y telefono son obligatorios.')
+    if not first_name or not last_name or not phone or not dni:
+        return json_error('Nombres, apellidos, telefono y DNI son obligatorios.')
 
-    username_base = dni or email or f'{first_name}.{last_name}'
+    username_base = dni
     username = ''.join(char.lower() for char in username_base if char.isalnum() or char in '._-')
     username = username or f'padre{User.objects.count() + 1}'
     original_username = username
@@ -378,7 +406,7 @@ def parents_collection(request):
         email=email,
         first_name=first_name,
         last_name=last_name,
-        password=data.get('password') or 'sisfitkids123',
+        password=data.get('password') or f'P{dni}',
         role=User.Role.PARENT,
     )
     parent = ParentProfile.objects.create(

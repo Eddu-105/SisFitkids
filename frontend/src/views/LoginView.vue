@@ -33,7 +33,7 @@ async function login() {
       <div>
         <p class="eyebrow">Sistema administrativo</p>
         <h1>SIS Fit Kids</h1>
-        <p class="muted">Control de alumnos, padres, horarios, pagos y progreso desde un solo lugar.</p>
+        <p class="muted">Ingresa con tus credenciales para revisar la informacion de la academia.</p>
       </div>
 
       <form class="login-form" @submit.prevent="login">
@@ -61,24 +61,8 @@ async function login() {
 
       <div class="login-help">
         <strong>Acceso inicial</strong>
-        <span>Profesor: profesor / Profesor123</span>
-        <span>Padres nuevos: DNI o usuario generado / sisfitkids123</span>
+        <span>Padres: usuario DNI y contrasena P + DNI. Ejemplo: 12345678 / P12345678</span>
       </div>
     </section>
-
-    <aside class="login-summary">
-      <div>
-        <span>Primer bloque</span>
-        <strong>Usuarios, padres y alumnos</strong>
-      </div>
-      <div>
-        <span>Siguiente</span>
-        <strong>Horarios y pagos</strong>
-      </div>
-      <div>
-        <span>Luego</span>
-        <strong>Asistencia y progreso</strong>
-      </div>
-    </aside>
   </main>
 </template>

@@ -14,6 +14,16 @@ const attendance = ref([])
 const progress = ref([])
 const announcements = ref([])
 const selectedChildId = ref('')
+const savingProfile = ref(false)
+const success = ref('')
+const profileForm = ref({
+  first_name: '',
+  last_name: '',
+  phone: '',
+  email: '',
+  address: '',
+  emergency_phone: '',
+})
 const dayOptions = [
   { value: 1, label: 'Lunes' },
   { value: 2, label: 'Martes' },
@@ -46,12 +56,25 @@ function groupDayText(group) {
   return group?.day_labels?.length ? group.day_labels.join(', ') : group?.day_label
 }
 
+function syncProfileForm(currentParent) {
+  profileForm.value = {
+    first_name: currentParent?.first_name || '',
+    last_name: currentParent?.last_name || '',
+    phone: currentParent?.phone || '',
+    email: currentParent?.email || '',
+    address: currentParent?.address || '',
+    emergency_phone: currentParent?.emergency_phone || '',
+  }
+}
+
 async function loadPortal() {
   loading.value = true
   error.value = ''
+  success.value = ''
   try {
     const data = await api('/api/parent-portal/')
     parent.value = data.parent
+    syncProfileForm(data.parent)
     children.value = data.children
     payments.value = data.payments
     attendance.value = data.attendance
@@ -62,6 +85,25 @@ async function loadPortal() {
     error.value = currentError.message
   } finally {
     loading.value = false
+  }
+}
+
+async function saveProfile() {
+  error.value = ''
+  success.value = ''
+  savingProfile.value = true
+  try {
+    const updatedParent = await api('/api/parent-portal/', {
+      method: 'PATCH',
+      body: JSON.stringify(profileForm.value),
+    })
+    parent.value = updatedParent
+    syncProfileForm(updatedParent)
+    success.value = 'Datos actualizados correctamente.'
+  } catch (currentError) {
+    error.value = currentError.message
+  } finally {
+    savingProfile.value = false
   }
 }
 
@@ -84,6 +126,7 @@ onMounted(loadPortal)
     </header>
 
     <p v-if="error" class="alert error">{{ error }}</p>
+    <p v-if="success" class="alert success">{{ success }}</p>
     <p v-if="loading" class="empty-state">Cargando informacion...</p>
 
     <section v-if="children.length > 1" class="child-tabs" aria-label="Hijos">
@@ -126,6 +169,47 @@ onMounted(loadPortal)
     </section>
 
     <p v-if="!child && !loading" class="empty-state">Todavia no hay alumnos asociados a tu usuario.</p>
+
+    <section v-if="parent" class="panel profile-edit-panel">
+      <div class="panel-header">
+        <h2>Mis datos</h2>
+      </div>
+      <form class="data-form" @submit.prevent="saveProfile">
+        <div class="form-grid">
+          <label>
+            Nombres
+            <input v-model="profileForm.first_name" required type="text" />
+          </label>
+          <label>
+            Apellidos
+            <input v-model="profileForm.last_name" required type="text" />
+          </label>
+        </div>
+        <div class="form-grid">
+          <label>
+            Telefono
+            <input v-model="profileForm.phone" required type="tel" />
+          </label>
+          <label>
+            Correo
+            <input v-model="profileForm.email" type="email" />
+          </label>
+        </div>
+        <label>
+          Direccion
+          <input v-model="profileForm.address" type="text" />
+        </label>
+        <label>
+          Telefono de emergencia
+          <input v-model="profileForm.emergency_phone" type="tel" />
+        </label>
+        <div class="form-actions">
+          <button class="primary" :disabled="savingProfile" type="submit">
+            {{ savingProfile ? 'Guardando...' : 'Guardar datos' }}
+          </button>
+        </div>
+      </form>
+    </section>
 
     <section v-if="child" class="content-grid">
       <article class="panel wide">

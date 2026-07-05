@@ -2,7 +2,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { CalendarDays, CreditCard, MessageSquareText, Plus, RefreshCcw, Search, UsersRound } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
-import { notices } from '../data/demo'
 import { api } from '../services/api'
 
 const router = useRouter()
@@ -1054,7 +1053,7 @@ onMounted(loadData)
             </label>
             <label>
               DNI
-              <input v-model="parentForm.dni" type="text" />
+              <input v-model="parentForm.dni" required type="text" />
             </label>
             <label>
               Correo
@@ -1178,16 +1177,6 @@ onMounted(loadData)
           </form>
         </article>
       </section>
-
-      <section class="panel notices-panel">
-        <div class="panel-header">
-          <h2>Comunicados pendientes</h2>
-        </div>
-        <ul class="notice-list inline">
-          <li v-for="notice in notices" :key="notice">{{ notice }}</li>
-        </ul>
-      </section>
-
       <div v-if="confirmModal.open" class="modal-backdrop">
         <section class="modal-panel" role="dialog" aria-modal="true">
           <h2>Confirmar eliminacion</h2>
