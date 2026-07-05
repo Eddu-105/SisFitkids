@@ -15,6 +15,7 @@ const progress = ref([])
 const announcements = ref([])
 const selectedChildId = ref('')
 const savingProfile = ref(false)
+const savingPassword = ref(false)
 const success = ref('')
 const profileForm = ref({
   first_name: '',
@@ -23,6 +24,11 @@ const profileForm = ref({
   email: '',
   address: '',
   emergency_phone: '',
+})
+const passwordForm = ref({
+  current_password: '',
+  new_password: '',
+  confirm_password: '',
 })
 const dayOptions = [
   { value: 1, label: 'Lunes' },
@@ -67,6 +73,14 @@ function syncProfileForm(currentParent) {
   }
 }
 
+function resetPasswordForm() {
+  passwordForm.value = {
+    current_password: '',
+    new_password: '',
+    confirm_password: '',
+  }
+}
+
 async function loadPortal() {
   loading.value = true
   error.value = ''
@@ -104,6 +118,31 @@ async function saveProfile() {
     error.value = currentError.message
   } finally {
     savingProfile.value = false
+  }
+}
+
+async function changePassword() {
+  error.value = ''
+  success.value = ''
+  if (passwordForm.value.new_password !== passwordForm.value.confirm_password) {
+    error.value = 'La confirmacion no coincide.'
+    return
+  }
+  savingPassword.value = true
+  try {
+    await api('/api/parent-portal/', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        action: 'change_password',
+        ...passwordForm.value,
+      }),
+    })
+    resetPasswordForm()
+    success.value = 'Contrasena actualizada correctamente.'
+  } catch (currentError) {
+    error.value = currentError.message
+  } finally {
+    savingPassword.value = false
   }
 }
 
@@ -206,6 +245,33 @@ onMounted(loadPortal)
         <div class="form-actions">
           <button class="primary" :disabled="savingProfile" type="submit">
             {{ savingProfile ? 'Guardando...' : 'Guardar datos' }}
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section v-if="parent" class="panel profile-edit-panel">
+      <div class="panel-header">
+        <h2>Cambiar contrasena</h2>
+      </div>
+      <form class="data-form" @submit.prevent="changePassword">
+        <label>
+          Contrasena actual
+          <input v-model="passwordForm.current_password" autocomplete="current-password" required type="password" />
+        </label>
+        <div class="form-grid">
+          <label>
+            Nueva contrasena
+            <input v-model="passwordForm.new_password" autocomplete="new-password" minlength="8" required type="password" />
+          </label>
+          <label>
+            Confirmar contrasena
+            <input v-model="passwordForm.confirm_password" autocomplete="new-password" minlength="8" required type="password" />
+          </label>
+        </div>
+        <div class="form-actions">
+          <button class="primary" :disabled="savingPassword" type="submit">
+            {{ savingPassword ? 'Actualizando...' : 'Actualizar contrasena' }}
           </button>
         </div>
       </form>

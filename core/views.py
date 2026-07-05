@@ -3,7 +3,7 @@ import json
 from datetime import date
 from io import StringIO
 
-from django.contrib.auth import authenticate, get_user_model, login, logout
+from django.contrib.auth import authenticate, get_user_model, login, logout, update_session_auth_hash
 from django.db.models import Count, Sum
 from django.http import HttpResponse, JsonResponse
 from django.utils.dateparse import parse_time
@@ -314,6 +314,22 @@ def parent_portal(request):
         data = request_data(request)
         if data is None:
             return json_error('El JSON enviado no es valido.')
+
+        if data.get('action') == 'change_password':
+            current_password = data.get('current_password') or ''
+            new_password = data.get('new_password') or ''
+            confirm_password = data.get('confirm_password') or ''
+            if not request.user.check_password(current_password):
+                return json_error('La contrasena actual no es correcta.')
+            if len(new_password) < 8:
+                return json_error('La nueva contrasena debe tener al menos 8 caracteres.')
+            if new_password != confirm_password:
+                return json_error('La confirmacion no coincide.')
+
+            request.user.set_password(new_password)
+            request.user.save()
+            update_session_auth_hash(request, request.user)
+            return JsonResponse({'updated': True})
 
         required = request.method == 'PUT'
         first_name = (data.get('first_name') or '').strip()
